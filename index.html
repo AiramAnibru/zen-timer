@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporizador Zen</title>
+
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f4f1ea;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        color: #4a3f35;
+    }
+
+    .card {
+        background: rgba(255,255,255,0.92);
+        padding: 28px;
+        border-radius: 18px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+        text-align: center;
+        max-width: 340px;
+        width: calc(100% - 48px);
+        border: 1px solid #e0dbcf;
+    }
+
+    h2 {
+        margin: 0 0 24px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+
+    .group {
+        margin-bottom: 15px;
+        text-align: left;
+    }
+
+    label {
+        display: block;
+        font-size: 13px;
+        color: #7a6e61;
+        margin-bottom: 5px;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1c9bc;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-size: 16px;
+        background: #faf9f6;
+        color: #4a3f35;
+    }
+
+    #clock {
+        margin: 26px 0 8px;
+        font-size: 36px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 300;
+        letter-spacing: 1px;
+    }
+
+    #status {
+        min-height: 20px;
+        margin-bottom: 22px;
+        font-size: 13px;
+        color: #8c7863;
+    }
+
+    button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 9px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .btn-start {
+        background: #8c7863;
+        color: white;
+    }
+
+    .btn-start:hover {
+        background: #766451;
+    }
+
+    .btn-stop {
+        background: #aa6a62;
+        color: white;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h2>Temporizador Zen</h2>
+
+    <div class="group">
+        <label>Duración total · minutos</label>
+        <input type="number" id="duracion" value="30" min="1" step="1">
+    </div>
+
+    <div class="group">
+        <label>Recordatorio suave cada · minutos</label>
+        <input type="number" id="recordatorio" value="5" min="0" step="1">
+    </div>
+
+    <div class="group">
+        <label>Cambio de etapa cada · minutos</label>
+        <input type="number" id="etapa" value="10" min="0" step="1">
+    </div>
+
+    <div id="clock">00:00</div>
+    <div id="status">Listo para meditar</div>
+
+    <button id="btnAction" class="btn-start">
+        Iniciar
+    </button>
+
+</div>
+
+<script>
+
+let audioCtx = null;
+let activo = false;
+let inicioSesion = null;
+let timerId = null;
+let wakeLock = null;
+
+let siguienteRecordatorio = Infinity;
+let siguienteEtapa = Infinity;
+
+function obtenerAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+    }
+
+    return audioCtx;
+}
+
+
+/* ---------------------------------------------------
+   CUENCOS
+
+   Se combinan varios parciales ligeramente
+   inarmónicos para producir un sonido más parecido
+   a un cuenco que un oscilador puro.
+--------------------------------------------------- */
+
+function reproducirCuenco(tipo) {
+
+    const ctx = obtenerAudioContext();
+    const ahora = ctx.currentTime;
+
+    let fundamental;
+    let duracion;
+    let volumen;
+
+    if (tipo === "inicioFin") {
+        fundamental = 146.8;      // grave
+        duracion = 5.5;
+        volumen = 0.24;
+    }
+
+    else if (tipo === "etapa") {
+        fundamental = 220;        // intermedio
+        duracion = 3.5;
+        volumen = 0.18;
+    }
+
+    else {
+        fundamental = 329.6;      // recordatorio ligero
+        duracion = 2.2;
+        volumen = 0.12;
+    }
+
+
+    /*
+       Relaciones deliberadamente no perfectamente
+       armónicas: dan un carácter metálico/de cuenco.
+    */
+
+    const parciales = [
+        { ratio: 1.00, amp: 1.00 },
+        { ratio: 2.01, amp: 0.45 },
+        { ratio: 2.72, amp: 0.25 },
+        { ratio: 4.08, amp: 0.12 }
+    ];
+
+
+    parciales.forEach((p, i) => {
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+
+        osc.frequency.setValueAtTime(
+            fundamental * p.ratio,
+            ahora
+        );
+
+        // ligerísimo batido para evitar un sonido demasiado electrónico
+        osc.detune.setValueAtTime(
+            i % 2 === 0 ? -2 : 2,
+            ahora
+        );
+
+        gain.gain.setValueAtTime(
+            volumen * p.amp,
+            ahora
+        );
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            ahora + duracion
+        );
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(ahora);
+        osc.stop(ahora + duracion);
+    });
+}
+
+
+function formatoTiempo(segundos) {
+
+    segundos = Math.max(0, Math.floor(segundos));
+
+    const min = Math.floor(segundos / 60);
+    const sec = segundos % 60;
+
+    return (
+        String(min).padStart(2, "0") +
+        ":" +
+        String(sec).padStart(2, "0")
+    );
+}
+
+
+async function solicitarWakeLock() {
+
+    try {
+        if ("wakeLock" in navigator) {
+            wakeLock = await navigator.wakeLock.request("screen");
+        }
+    }
+
+    catch (err) {
+        console.log("Wake Lock no disponible:", err);
+    }
+}
+
+
+async function liberarWakeLock() {
+
+    if (wakeLock) {
+        try {
+            await wakeLock.release();
+        } catch(e) {}
+
+        wakeLock = null;
+    }
+}
+
+
+function iniciarSesion() {
+
+    const duracionMin =
+        parseFloat(document.getElementById("duracion").value);
+
+    const recordatorioMin =
+        parseFloat(document.getElementById("recordatorio").value);
+
+    const etapaMin =
+        parseFloat(document.getElementById("etapa").value);
+
+
+    if (isNaN(duracionMin) || duracionMin <= 0) {
+        alert("Introduce una duración válida.");
+        return;
+    }
+
+
+    const duracion = duracionMin * 60;
+
+    const intervaloRecordatorio =
+        recordatorioMin > 0
+        ? recordatorioMin * 60
+        : Infinity;
+
+    const intervaloEtapa =
+        etapaMin > 0
+        ? etapaMin * 60
+        : Infinity;
+
+
+    siguienteRecordatorio = intervaloRecordatorio;
+    siguienteEtapa = intervaloEtapa;
+
+    activo = true;
+    inicioSesion = performance.now();
+
+    const btn = document.getElementById("btnAction");
+
+    btn.textContent = "Detener";
+    btn.className = "btn-stop";
+
+    document.getElementById("status").textContent =
+        "Sesión en curso";
+
+    document.getElementById("clock").textContent =
+        "00:00";
+
+    obtenerAudioContext();
+    reproducirCuenco("inicioFin");
+
+    solicitarWakeLock();
+
+
+    timerId = setInterval(() => {
+
+        const transcurrido =
+            (performance.now() - inicioSesion) / 1000;
+
+        document.getElementById("clock").textContent =
+            formatoTiempo(transcurrido);
+
+
+        /* FINAL — siempre tiene prioridad */
+
+        if (transcurrido >= duracion) {
+
+            terminarSesion();
+            return;
+        }
+
+
+        /*
+          ETAPA:
+          si etapa y recordatorio coinciden,
+          suena solamente el cuenco de etapa.
+        */
+
+        if (transcurrido >= siguienteEtapa) {
+
+            reproducirCuenco("etapa");
+
+            siguienteEtapa += intervaloEtapa;
+
+            if (
+                Math.abs(
+                    siguienteRecordatorio -
+                    transcurrido
+                ) < 1
+            ) {
+                siguienteRecordatorio +=
+                    intervaloRecordatorio;
+            }
+        }
+
+
+        else if (
+            transcurrido >= siguienteRecordatorio
+        ) {
+
+            reproducirCuenco("recordatorio");
+
+            siguienteRecordatorio +=
+                intervaloRecordatorio;
+        }
+
+    }, 250);
+}
+
+
+function terminarSesion() {
+
+    clearInterval(timerId);
+
+    activo = false;
+
+    reproducirCuenco("inicioFin");
+
+    const duracionMin =
+        parseFloat(
+            document.getElementById("duracion").value
+        );
+
+    document.getElementById("clock").textContent =
+        formatoTiempo(duracionMin * 60);
+
+    document.getElementById("status").textContent =
+        "Sesión terminada";
+
+    const btn = document.getElementById("btnAction");
+
+    btn.textContent = "Iniciar";
+    btn.className = "btn-start";
+
+    liberarWakeLock();
+}
+
+
+function cancelarSesion() {
+
+    clearInterval(timerId);
+
+    activo = false;
+
+    document.getElementById("status").textContent =
+        "Sesión detenida";
+
+    const btn = document.getElementById("btnAction");
+
+    btn.textContent = "Iniciar";
+    btn.className = "btn-start";
+
+    liberarWakeLock();
+}
+
+
+document
+    .getElementById("btnAction")
+    .addEventListener("click", () => {
+
+        if (activo) {
+            cancelarSesion();
+        }
+
+        else {
+            iniciarSesion();
+        }
+    });
+
+
+/*
+   Algunos navegadores liberan el Wake Lock
+   al cambiar de pestaña. Intentamos recuperarlo
+   al regresar.
+*/
+
+document.addEventListener(
+    "visibilitychange",
+    async () => {
+
+        if (
+            activo &&
+            document.visibilityState === "visible"
+        ) {
+            await solicitarWakeLock();
+        }
+    }
+);
+
+</script>
+
+</body>
+</html>
