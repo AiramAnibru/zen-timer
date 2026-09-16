@@ -1,473 +1,613 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Temporizador Zen</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zen Timer</title>
+  <style>
+    :root {
+      --bg1: #f5efe6;
+      --bg2: #e9dfd1;
+      --card: rgba(255, 255, 255, 0.82);
+      --text: #4e4338;
+      --muted: #7e7062;
+      --line: #ddd1c2;
+      --accent: #8e745e;
+      --accent-dark: #735d4b;
+      --stop: #b56a64;
+      --shadow: 0 12px 40px rgba(88, 66, 46, 0.12);
+    }
 
-<style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #f4f1ea;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        color: #4a3f35;
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,0.75), transparent 35%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
 
     .card {
-        background: rgba(255,255,255,0.92);
-        padding: 28px;
-        border-radius: 18px;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
-        text-align: center;
-        max-width: 340px;
-        width: calc(100% - 48px);
-        border: 1px solid #e0dbcf;
+      width: 100%;
+      max-width: 520px;
+      background: var(--card);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
     }
 
-    h2 {
-        margin: 0 0 24px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
+    .title {
+      text-align: center;
+      margin-bottom: 6px;
+      font-size: 1.9rem;
+      font-weight: 650;
+      letter-spacing: 0.02em;
     }
 
-    .group {
-        margin-bottom: 15px;
-        text-align: left;
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 26px;
+    }
+
+    .clock {
+      text-align: center;
+      font-size: 3rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+      min-height: 1.4em;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 10px;
+      background: rgba(142,116,94,0.12);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #b89d83);
+      border-radius: 999px;
+      transition: width 0.2s linear;
+    }
+
+    .section {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.45);
+    }
+
+    .section h3 {
+      margin: 0 0 14px 0;
+      font-size: 1rem;
+      font-weight: 650;
+      color: var(--accent-dark);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
     }
 
     label {
-        display: block;
-        font-size: 13px;
-        color: #7a6e61;
-        margin-bottom: 5px;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
     }
 
     input {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #d1c9bc;
-        border-radius: 8px;
-        box-sizing: border-box;
-        font-size: 16px;
-        background: #faf9f6;
-        color: #4a3f35;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 0.98rem;
+      background: rgba(255,255,255,0.92);
+      color: var(--text);
+      outline: none;
     }
 
-    #clock {
-        margin: 26px 0 8px;
-        font-size: 36px;
-        font-variant-numeric: tabular-nums;
-        font-weight: 300;
-        letter-spacing: 1px;
+    input:focus {
+      border-color: #b39a84;
+      box-shadow: 0 0 0 3px rgba(179,154,132,0.16);
     }
 
-    #status {
-        min-height: 20px;
-        margin-bottom: 22px;
-        font-size: 13px;
-        color: #8c7863;
+    .help {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
     }
 
     button {
-        width: 100%;
-        padding: 14px;
-        border: none;
-        border-radius: 9px;
-        font-size: 16px;
-        cursor: pointer;
+      flex: 1;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 1rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 0.08s ease, opacity 0.2s ease, background 0.2s ease;
+    }
+
+    button:hover {
+      opacity: 0.96;
+    }
+
+    button:active {
+      transform: translateY(1px);
     }
 
     .btn-start {
-        background: #8c7863;
-        color: white;
+      background: var(--accent);
+      color: white;
     }
 
     .btn-start:hover {
-        background: #766451;
+      background: var(--accent-dark);
     }
 
     .btn-stop {
-        background: #aa6a62;
-        color: white;
+      background: var(--stop);
+      color: white;
     }
-</style>
+
+    .btn-secondary {
+      background: rgba(142,116,94,0.12);
+      color: var(--accent-dark);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 560px) {
+      .grid,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .clock {
+        font-size: 2.45rem;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="card">
+    <div class="title">Zen Timer</div>
+    <div class="subtitle">Meditation timer with start/end, stage, and reminder tones</div>
 
-<div class="card">
-
-    <h2>Temporizador Zen</h2>
-
-    <div class="group">
-        <label>Duración total · minutos</label>
-        <input type="number" id="duracion" value="30" min="1" step="1">
+    <div class="clock" id="clock">00:00</div>
+    <div class="status" id="status">Ready to begin</div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
     </div>
 
-    <div class="group">
-        <label>Recordatorio suave cada · minutos</label>
-        <input type="number" id="recordatorio" value="5" min="0" step="1">
+    <div class="section">
+      <h3>Session</h3>
+      <div class="grid">
+        <div class="field">
+          <label for="duration">Total duration (minutes)</label>
+          <input type="number" id="duration" value="30" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="reminderEvery">Reminder every (minutes)</label>
+          <input type="number" id="reminderEvery" value="5" min="0" step="1">
+        </div>
+        <div class="field">
+          <label for="stageEvery">Stage every (minutes)</label>
+          <input type="number" id="stageEvery" value="10" min="0" step="1">
+        </div>
+      </div>
+      <div class="help">
+        Set reminder or stage to 0 if you do not want that tone.
+      </div>
     </div>
 
-    <div class="group">
-        <label>Cambio de etapa cada · minutos</label>
-        <input type="number" id="etapa" value="10" min="0" step="1">
+    <div class="section">
+      <h3>Start / End Tone</h3>
+      <div class="grid">
+        <div class="field">
+          <label for="startFreq">Frequency (Hz)</label>
+          <input type="number" id="startFreq" value="146.8" min="50" step="0.1">
+        </div>
+        <div class="field">
+          <label for="startDur">Duration (seconds)</label>
+          <input type="number" id="startDur" value="5.5" min="0.2" step="0.1">
+        </div>
+      </div>
     </div>
 
-    <div id="clock">00:00</div>
-    <div id="status">Listo para meditar</div>
+    <div class="section">
+      <h3>Stage Tone</h3>
+      <div class="grid">
+        <div class="field">
+          <label for="stageFreq">Frequency (Hz)</label>
+          <input type="number" id="stageFreq" value="220" min="50" step="0.1">
+        </div>
+        <div class="field">
+          <label for="stageDurTone">Duration (seconds)</label>
+          <input type="number" id="stageDurTone" value="3.5" min="0.2" step="0.1">
+        </div>
+      </div>
+    </div>
 
-    <button id="btnAction" class="btn-start">
-        Iniciar
-    </button>
+    <div class="section">
+      <h3>Reminder Tone</h3>
+      <div class="grid">
+        <div class="field">
+          <label for="reminderFreq">Frequency (Hz)</label>
+          <input type="number" id="reminderFreq" value="329.6" min="50" step="0.1">
+        </div>
+        <div class="field">
+          <label for="reminderDur">Duration (seconds)</label>
+          <input type="number" id="reminderDur" value="2.2" min="0.2" step="0.1">
+        </div>
+      </div>
+    </div>
 
-</div>
+    <div class="button-row">
+      <button id="mainButton" class="btn-start">Start</button>
+      <button id="testButton" class="btn-secondary">Test tones</button>
+    </div>
 
-<script>
+    <div class="footer-note">
+      Tip: lower frequencies feel deeper, but phone speakers may reproduce them less strongly.
+    </div>
+  </div>
 
-let audioCtx = null;
-let activo = false;
-let inicioSesion = null;
-let timerId = null;
-let wakeLock = null;
+  <script>
+    let audioCtx = null;
+    let active = false;
+    let sessionStart = null;
+    let timerId = null;
+    let wakeLock = null;
 
-let siguienteRecordatorio = Infinity;
-let siguienteEtapa = Infinity;
+    let nextReminder = Infinity;
+    let nextStage = Infinity;
+    let totalDurationSec = 0;
 
-function obtenerAudioContext() {
-    if (!audioCtx) {
+    const STORAGE_KEY = "zenTimerSettingsV1";
+
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function getAudioContext() {
+      if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    if (audioCtx.state === "suspended") {
+      }
+      if (audioCtx.state === "suspended") {
         audioCtx.resume();
+      }
+      return audioCtx;
     }
 
-    return audioCtx;
-}
-
-
-/* ---------------------------------------------------
-   CUENCOS
-
-   Se combinan varios parciales ligeramente
-   inarmónicos para producir un sonido más parecido
-   a un cuenco que un oscilador puro.
---------------------------------------------------- */
-
-function reproducirCuenco(tipo) {
-
-    const ctx = obtenerAudioContext();
-    const ahora = ctx.currentTime;
-
-    let fundamental;
-    let duracion;
-    let volumen;
-
-    if (tipo === "inicioFin") {
-        fundamental = 146.8;      // grave
-        duracion = 5.5;
-        volumen = 0.24;
+    function formatTime(seconds) {
+      seconds = Math.max(0, Math.floor(seconds));
+      const min = Math.floor(seconds / 60);
+      const sec = seconds % 60;
+      return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     }
 
-    else if (tipo === "etapa") {
-        fundamental = 220;        // intermedio
-        duracion = 3.5;
-        volumen = 0.18;
+    function getSettings() {
+      return {
+        duration: parseFloat($("duration").value),
+        reminderEvery: parseFloat($("reminderEvery").value),
+        stageEvery: parseFloat($("stageEvery").value),
+
+        startFreq: parseFloat($("startFreq").value),
+        startDur: parseFloat($("startDur").value),
+
+        stageFreq: parseFloat($("stageFreq").value),
+        stageDurTone: parseFloat($("stageDurTone").value),
+
+        reminderFreq: parseFloat($("reminderFreq").value),
+        reminderDur: parseFloat($("reminderDur").value)
+      };
     }
 
-    else {
-        fundamental = 329.6;      // recordatorio ligero
-        duracion = 2.2;
-        volumen = 0.12;
+    function validateSettings(s) {
+      if (isNaN(s.duration) || s.duration <= 0) {
+        alert("Please enter a valid total duration.");
+        return false;
+      }
+
+      const numericFields = [
+        s.startFreq, s.startDur,
+        s.stageFreq, s.stageDurTone,
+        s.reminderFreq, s.reminderDur
+      ];
+
+      if (numericFields.some(v => isNaN(v) || v <= 0)) {
+        alert("Please enter valid frequencies and durations for all tones.");
+        return false;
+      }
+
+      if (!isNaN(s.reminderEvery) && s.reminderEvery < 0) {
+        alert("Reminder interval cannot be negative.");
+        return false;
+      }
+
+      if (!isNaN(s.stageEvery) && s.stageEvery < 0) {
+        alert("Stage interval cannot be negative.");
+        return false;
+      }
+
+      return true;
     }
 
+    function saveSettings() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(getSettings()));
+    }
 
-    /*
-       Relaciones deliberadamente no perfectamente
-       armónicas: dan un carácter metálico/de cuenco.
-    */
+    function loadSettings() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
 
-    const parciales = [
+      try {
+        const s = JSON.parse(raw);
+        for (const [key, value] of Object.entries(s)) {
+          if ($(key) && value !== undefined && value !== null) {
+            $(key).value = value;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load saved settings", e);
+      }
+    }
+
+    function updateProgress(elapsedSec) {
+      const pct = totalDurationSec > 0
+        ? Math.min(100, (elapsedSec / totalDurationSec) * 100)
+        : 0;
+      $("progressBar").style.width = pct + "%";
+    }
+
+    function updateClock(elapsedSec) {
+      $("clock").textContent = formatTime(elapsedSec);
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch (err) {
+        console.log("Wake Lock unavailable:", err);
+      }
+    }
+
+    async function releaseWakeLock() {
+      if (wakeLock) {
+        try {
+          await wakeLock.release();
+        } catch (e) {}
+        wakeLock = null;
+      }
+    }
+
+    function playBowl(frequency, duration, baseVolume = 0.18) {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+
+      const partials = [
         { ratio: 1.00, amp: 1.00 },
-        { ratio: 2.01, amp: 0.45 },
-        { ratio: 2.72, amp: 0.25 },
-        { ratio: 4.08, amp: 0.12 }
-    ];
+        { ratio: 2.01, amp: 0.42 },
+        { ratio: 2.73, amp: 0.22 },
+        { ratio: 4.08, amp: 0.10 }
+      ];
 
-
-    parciales.forEach((p, i) => {
-
+      partials.forEach((p, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
         osc.type = "sine";
+        osc.frequency.setValueAtTime(frequency * p.ratio, now);
+        osc.detune.setValueAtTime(i % 2 === 0 ? -2 : 2, now);
 
-        osc.frequency.setValueAtTime(
-            fundamental * p.ratio,
-            ahora
-        );
-
-        // ligerísimo batido para evitar un sonido demasiado electrónico
-        osc.detune.setValueAtTime(
-            i % 2 === 0 ? -2 : 2,
-            ahora
-        );
-
-        gain.gain.setValueAtTime(
-            volumen * p.amp,
-            ahora
-        );
-
-        gain.gain.exponentialRampToValueAtTime(
-            0.0001,
-            ahora + duracion
-        );
+        gain.gain.setValueAtTime(baseVolume * p.amp, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
         osc.connect(gain);
         gain.connect(ctx.destination);
 
-        osc.start(ahora);
-        osc.stop(ahora + duracion);
-    });
-}
-
-
-function formatoTiempo(segundos) {
-
-    segundos = Math.max(0, Math.floor(segundos));
-
-    const min = Math.floor(segundos / 60);
-    const sec = segundos % 60;
-
-    return (
-        String(min).padStart(2, "0") +
-        ":" +
-        String(sec).padStart(2, "0")
-    );
-}
-
-
-async function solicitarWakeLock() {
-
-    try {
-        if ("wakeLock" in navigator) {
-            wakeLock = await navigator.wakeLock.request("screen");
-        }
+        osc.start(now);
+        osc.stop(now + duration);
+      });
     }
 
-    catch (err) {
-        console.log("Wake Lock no disponible:", err);
-    }
-}
+    function playTone(type) {
+      const s = getSettings();
 
-
-async function liberarWakeLock() {
-
-    if (wakeLock) {
-        try {
-            await wakeLock.release();
-        } catch(e) {}
-
-        wakeLock = null;
-    }
-}
-
-
-function iniciarSesion() {
-
-    const duracionMin =
-        parseFloat(document.getElementById("duracion").value);
-
-    const recordatorioMin =
-        parseFloat(document.getElementById("recordatorio").value);
-
-    const etapaMin =
-        parseFloat(document.getElementById("etapa").value);
-
-
-    if (isNaN(duracionMin) || duracionMin <= 0) {
-        alert("Introduce una duración válida.");
-        return;
+      if (type === "startEnd") {
+        playBowl(s.startFreq, s.startDur, 0.22);
+      } else if (type === "stage") {
+        playBowl(s.stageFreq, s.stageDurTone, 0.17);
+      } else if (type === "reminder") {
+        playBowl(s.reminderFreq, s.reminderDur, 0.13);
+      }
     }
 
+    function startSession() {
+      const s = getSettings();
+      if (!validateSettings(s)) return;
 
-    const duracion = duracionMin * 60;
+      saveSettings();
 
-    const intervaloRecordatorio =
-        recordatorioMin > 0
-        ? recordatorioMin * 60
-        : Infinity;
+      totalDurationSec = s.duration * 60;
+      const reminderIntervalSec = s.reminderEvery > 0 ? s.reminderEvery * 60 : Infinity;
+      const stageIntervalSec = s.stageEvery > 0 ? s.stageEvery * 60 : Infinity;
 
-    const intervaloEtapa =
-        etapaMin > 0
-        ? etapaMin * 60
-        : Infinity;
+      nextReminder = reminderIntervalSec;
+      nextStage = stageIntervalSec;
 
+      active = true;
+      sessionStart = performance.now();
 
-    siguienteRecordatorio = intervaloRecordatorio;
-    siguienteEtapa = intervaloEtapa;
+      $("status").textContent = "Session in progress";
+      $("mainButton").textContent = "Stop";
+      $("mainButton").className = "btn-stop";
 
-    activo = true;
-    inicioSesion = performance.now();
+      updateClock(0);
+      updateProgress(0);
 
-    const btn = document.getElementById("btnAction");
+      getAudioContext();
+      playTone("startEnd");
+      requestWakeLock();
 
-    btn.textContent = "Detener";
-    btn.className = "btn-stop";
+      timerId = setInterval(() => {
+        const elapsedSec = (performance.now() - sessionStart) / 1000;
 
-    document.getElementById("status").textContent =
-        "Sesión en curso";
+        updateClock(elapsedSec);
+        updateProgress(elapsedSec);
 
-    document.getElementById("clock").textContent =
-        "00:00";
-
-    obtenerAudioContext();
-    reproducirCuenco("inicioFin");
-
-    solicitarWakeLock();
-
-
-    timerId = setInterval(() => {
-
-        const transcurrido =
-            (performance.now() - inicioSesion) / 1000;
-
-        document.getElementById("clock").textContent =
-            formatoTiempo(transcurrido);
-
-
-        /* FINAL — siempre tiene prioridad */
-
-        if (transcurrido >= duracion) {
-
-            terminarSesion();
-            return;
+        if (elapsedSec >= totalDurationSec) {
+          finishSession();
+          return;
         }
 
+        if (elapsedSec >= nextStage) {
+          playTone("stage");
+          nextStage += stageIntervalSec;
 
-        /*
-          ETAPA:
-          si etapa y recordatorio coinciden,
-          suena solamente el cuenco de etapa.
-        */
-
-        if (transcurrido >= siguienteEtapa) {
-
-            reproducirCuenco("etapa");
-
-            siguienteEtapa += intervaloEtapa;
-
-            if (
-                Math.abs(
-                    siguienteRecordatorio -
-                    transcurrido
-                ) < 1
-            ) {
-                siguienteRecordatorio +=
-                    intervaloRecordatorio;
-            }
+          if (Math.abs(nextReminder - elapsedSec) < 1) {
+            nextReminder += reminderIntervalSec;
+          }
+        } else if (elapsedSec >= nextReminder) {
+          playTone("reminder");
+          nextReminder += reminderIntervalSec;
         }
+      }, 250);
+    }
 
+    function finishSession() {
+      clearInterval(timerId);
+      active = false;
 
-        else if (
-            transcurrido >= siguienteRecordatorio
-        ) {
+      playTone("startEnd");
 
-            reproducirCuenco("recordatorio");
+      $("clock").textContent = formatTime(totalDurationSec);
+      $("status").textContent = "Session completed";
+      $("progressBar").style.width = "100%";
 
-            siguienteRecordatorio +=
-                intervaloRecordatorio;
-        }
+      $("mainButton").textContent = "Start";
+      $("mainButton").className = "btn-start";
 
-    }, 250);
-}
+      releaseWakeLock();
+    }
 
+    function stopSession() {
+      clearInterval(timerId);
+      active = false;
 
-function terminarSesion() {
+      $("status").textContent = "Session stopped";
+      $("mainButton").textContent = "Start";
+      $("mainButton").className = "btn-start";
 
-    clearInterval(timerId);
+      releaseWakeLock();
+    }
 
-    activo = false;
+    function testTones() {
+      const s = getSettings();
+      if (!validateSettings(s)) return;
 
-    reproducirCuenco("inicioFin");
+      getAudioContext();
+      $("status").textContent = "Testing tones...";
 
-    const duracionMin =
-        parseFloat(
-            document.getElementById("duracion").value
-        );
+      playTone("startEnd");
 
-    document.getElementById("clock").textContent =
-        formatoTiempo(duracionMin * 60);
+      setTimeout(() => {
+        playTone("stage");
+      }, 1200);
 
-    document.getElementById("status").textContent =
-        "Sesión terminada";
+      setTimeout(() => {
+        playTone("reminder");
+        $("status").textContent = "Ready to begin";
+      }, 2400);
+    }
 
-    const btn = document.getElementById("btnAction");
-
-    btn.textContent = "Iniciar";
-    btn.className = "btn-start";
-
-    liberarWakeLock();
-}
-
-
-function cancelarSesion() {
-
-    clearInterval(timerId);
-
-    activo = false;
-
-    document.getElementById("status").textContent =
-        "Sesión detenida";
-
-    const btn = document.getElementById("btnAction");
-
-    btn.textContent = "Iniciar";
-    btn.className = "btn-start";
-
-    liberarWakeLock();
-}
-
-
-document
-    .getElementById("btnAction")
-    .addEventListener("click", () => {
-
-        if (activo) {
-            cancelarSesion();
-        }
-
-        else {
-            iniciarSesion();
-        }
+    $("mainButton").addEventListener("click", () => {
+      if (active) {
+        stopSession();
+      } else {
+        startSession();
+      }
     });
 
+    $("testButton").addEventListener("click", () => {
+      testTones();
+    });
 
-/*
-   Algunos navegadores liberan el Wake Lock
-   al cambiar de pestaña. Intentamos recuperarlo
-   al regresar.
-*/
+    document.addEventListener("visibilitychange", async () => {
+      if (active && document.visibilityState === "visible") {
+        await requestWakeLock();
+      }
+    });
 
-document.addEventListener(
-    "visibilitychange",
-    async () => {
+    document.querySelectorAll("input").forEach(input => {
+      input.addEventListener("change", saveSettings);
+    });
 
-        if (
-            activo &&
-            document.visibilityState === "visible"
-        ) {
-            await solicitarWakeLock();
-        }
-    }
-);
-
-</script>
-
+    loadSettings();
+  </script>
 </body>
 </html>
